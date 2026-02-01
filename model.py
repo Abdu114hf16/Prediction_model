@@ -1,24 +1,26 @@
 import pandas as pd
+import numpy as np
+from sklearn.datasets import fetch_california_housing
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, r2_score
 
-class RealEstateModel:
-    def __init__(self, data_path):
-        self.data = pd.read_csv(data_path)
-        self.model = RandomForestRegressor(n_estimators=100, random_state=42)
+raw_housing = fetch_california_housing()
+housing_data = pd.DataFrame(raw_housing.data, columns=raw_housing.feature_names)
+housing_data['TargetPrice'] = raw_housing.target
 
-    def preprocess(self):
-        self.data.fillna(0, inplace=True)
-        X = self.data.drop('price', axis=1)
-        y = self.data['price']
-        return train_test_split(X, y, test_size=0.2)
+inputs = housing_data.drop('TargetPrice', axis=1)
+targets = housing_data['TargetPrice']
 
-    def train(self):
-        X_train, X_test, y_train, y_test = self.preprocess()
-        self.model.fit(X_train, y_train)
-        predictions = self.model.predict(X_test)
-        print(f"Model RMSE: {mean_squared_error(y_test, predictions, squared=False)}")
+train_x, val_x, train_y, val_y = train_test_split(inputs, targets, test_size=0.2, random_state=42)
 
-if __name__ == "__main__":
-    print("Initializing Real Estate Predictive Model...")
+rf_model = RandomForestRegressor(n_estimators=100, random_state=42)
+rf_model.fit(train_x, train_y)
+
+price_predictions = rf_model.predict(val_x)
+
+rmse_val = np.sqrt(mean_squared_error(val_y, price_predictions))
+accuracy_score = r2_score(val_y, price_predictions)
+
+print(f"Model RMSE: {rmse_val:.4f}")
+print(f"Model Accuracy (R2 Score): {accuracy_score:.2%}")
